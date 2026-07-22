@@ -106,3 +106,30 @@ def ejecutar_pipeline_hedge_fund():
 
 if __name__ == "__main__":
     ejecutar_pipeline_hedge_fund()
+import re
+
+# =====================================================================
+# MÓDULO DE PARSEO ESTRUCTURADO (PROCESADOR DE CONTEXTO)
+# =====================================================================
+def procesar_respuesta_robot(texto_ia):
+    """
+    Separa de forma limpia el JSON de datos técnicos del texto del email.
+    Garantiza que la IA no rompa el pipeline si mezcla formatos.
+    """
+    # Buscar el contenido dentro de las etiquetas <output_json>
+    match_json = re.search(r'<output_json>(.*?)</output_json>', texto_ia, re.DOTALL)
+    # Buscar el contenido dentro de las etiquetas <output_email>
+    match_email = re.search(r'<output_email>(.*?)</output_email>', texto_ia, re.DOTALL)
+    
+    # Extraer el texto o definir un fallo controlado si la etiqueta está vacía
+    contenido_json = match_json.group(1).strip() if match_json else "{}"
+    contenido_email = match_email.group(1).strip() if match_email else "Error: La IA no generó justificación."
+    
+    # Intentar validar que el JSON sea correcto matemáticamente
+    try:
+        datos_validos = json.loads(contenido_json)
+    except json.JSONDecodeError:
+        print("🚨 [CRÍTICO] El robot envió un JSON corrupto. Activando modo rescate...")
+        datos_validos = {"status": "FALLO_PARSEO", "datos_crudos": contenido_json}
+        
+    return datos_validos, contenido_email
